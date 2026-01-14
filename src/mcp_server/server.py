@@ -154,14 +154,42 @@ def run_sse_server(host: str, port: int):
         path = scope["path"]
         method = scope.get("method", "GET")
 
+        # MCP 核心端点
         if path == "/sse" and method == "GET":
             # SSE 连接端点
             await handle_sse(scope, receive, send)
         elif path == "/messages" and method == "POST":
             # 消息处理端点
             await sse_transport.handle_post_message(scope, receive, send)
+
+        # 健康检查和状态端点（减少噪音日志）
+        elif path == "/" or path == "/health":
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [[b"content-type", b"application/json"]],
+                }
+            )
+            await send(
+                {
+                    "type": "http.response.body",
+                    "body": b'{"status":"ok","service":"mcp-server"}',
+                }
+            )
+        elif path == "/favicon.ico":
+            # 返回空的 favicon，避免浏览器请求报错
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 204,
+                    "headers": [],
+                }
+            )
+            await send({"type": "http.response.body", "body": b""})
+
+        # 其他路径静默返回 404（不打印详细日志）
         else:
-            # 404 Not Found
             await send(
                 {
                     "type": "http.response.start",
@@ -182,7 +210,8 @@ def run_sse_server(host: str, port: int):
     print(f"   消息端点: http://{host}:{port}/messages", file=sys.stderr)
 
     # 使用 Uvicorn 启动 ASGI 服务器
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    # log_level="warning" 减少请求日志噪音，只记录警告和错误
+    uvicorn.run(app, host=host, port=port, log_level="warning")
 
 
 # ============================================================
