@@ -1,0 +1,23 @@
+# MCP 远程服务器 Docker Compose 配置
+# 使用方法: docker compose up -d
+
+services:
+  mcp-server:
+    build: .
+    container_name: mcp-server
+    ports:
+      - "8000:8000" # 宿主机端口:容器端口
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+    volumes:
+      # 日志持久化到宿主机 ./logs 目录
+      - ./logs:/app/logs
+    restart: unless-stopped
+    # 健康检查（可选）
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/sse" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

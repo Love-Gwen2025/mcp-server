@@ -1,0 +1,26 @@
+[project]
+name = "mcp-server"
+version = "0.1.0"
+description = "通用功能MCP服务器 - 为AI提供时间查询等扩展能力"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp[cli]>=1.0.0",  # MCP官方Python SDK，包含CLI开发工具
+    "tzdata",           # 时区数据，Windows系统必需
+    "uvicorn>=0.30.0",  # ASGI服务器，用于SSE远程模式
+    "starlette>=0.38.0", # Web框架，用于处理HTTP/SSE请求
+]
+
+# MCP服务器入口点配置
+# 允许通过 uv run mcp-server 启动服务器
+[project.scripts]
+mcp-server = "mcp_server.server:main"
+
+# 使用uv作为构建后端
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# 配置src布局
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_server"]

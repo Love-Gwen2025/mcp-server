@@ -1,0 +1,79 @@
+# GitHub Actions - 自动构建并推送 Docker 镜像
+# 触发条件：推送到 main 分支 或 创建 tag
+
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'  # 推送 v1.0.0 这样的 tag 时触发
+  pull_request:
+    branches:
+      - main
+      - master
+
+env:
+  # Docker 镜像名称（改成你的用户名/仓库名）
+  IMAGE_NAME: mcp-server
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 设置 Docker Buildx（支持多平台构建）
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. 登录到 GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4. 提取元数据（标签、版本号等）
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # 分支名作为标签（main -> latest）
+            type=ref,event=branch
+            # tag 作为版本号（v1.0.0 -> 1.0.0）
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            # 短 commit hash
+            type=sha,prefix=
+
+      # 5. 构建并推送镜像
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # 缓存加速构建
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # 多平台支持（可选，去掉注释启用）
+          # platforms: linux/amd64,linux/arm64
+
+      # 6. 输出镜像信息
+      - name: Image info
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "🎉 镜像已推送到 GitHub Container Registry"
+          echo "📦 镜像地址: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}"
+          echo "🏷️ 标签: ${{ steps.meta.outputs.tags }}"
