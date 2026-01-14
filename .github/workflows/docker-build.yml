@@ -22,6 +22,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 添加权限：允许推送到 GHCR
+    permissions:
+      contents: read
+      packages: write
     
     steps:
       # 1. 检出代码
