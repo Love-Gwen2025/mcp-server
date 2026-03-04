@@ -9,6 +9,9 @@ dependencies = [
     "tzdata",           # 时区数据，Windows系统必需
     "uvicorn>=0.30.0",  # ASGI服务器，用于SSE远程模式
     "starlette>=0.38.0", # Web框架，用于处理HTTP/SSE请求
+    "jieba>=0.42.1",    # 中文分词
+    "psycopg2-binary>=2.9.0", # PostgreSQL 驱动
+    "openai>=1.0.0",    # 调用 DashScope embedding API（OpenAI 兼容）
 ]
 
 # MCP服务器入口点配置
