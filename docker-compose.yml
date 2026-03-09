@@ -1,22 +1,39 @@
 # MCP 远程服务器 Docker Compose 配置
-# 使用方法: docker compose up -d
+# 使用方法: cp .env.example .env && docker compose up -d
 
 services:
   mcp-server:
-    build: .
+    image: ghcr.io/love-gwen2025/mcp-server:latest
     container_name: mcp-server
     ports:
-      - "8000:8000" # 宿主机端口:容器端口
+      - "${MCP_PORT:-8000}:8000"
     environment:
       - PORT=8000
       - HOST=0.0.0.0
+      - MCP_TRANSPORT=${MCP_TRANSPORT:-streamable-http}
+      # 数据库连接（默认 host.docker.internal 指向宿主机）
+      - DB_HOST=${DB_HOST:-host.docker.internal}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-chatbi}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      # DashScope Embedding API
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-v3}
+      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1024}
+      # Langfuse tracing
+      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-https://cloud.langfuse.com}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_ENVIRONMENT=${LANGFUSE_ENVIRONMENT:-production}
+      - MCP_SERVER_RELEASE=${MCP_SERVER_RELEASE:-local}
     volumes:
-      # 日志持久化到宿主机 ./logs 目录
       - ./logs:/app/logs
     restart: unless-stopped
-    # 健康检查（可选）
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/sse" ]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
